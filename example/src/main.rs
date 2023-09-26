@@ -1,3 +1,5 @@
+use http_server::run_server; 
+
 fn main() {
-    println!("Hello, world!");
+    run_server("0.0.0.0:4200");
 }

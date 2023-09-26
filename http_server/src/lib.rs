@@ -1,14 +1,51 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub mod path;
+pub mod request;
+pub mod response;
+pub mod query;
+
+use std::{
+    net::{TcpListener, ToSocketAddrs, TcpStream}, 
+    io::{prelude::*, BufReader}, collections::HashMap};
+
+use path::Path;
+use query::QueryPath;
+use request::HttpRequest;
+use response::{HttpResponse, Status, HttpBody};
+
+fn handle_request(request: HttpRequest<QueryPath<String>>) -> HttpResponse<String> {
+    let default_name = "(use name query parameter)".to_string();
+    let name = request.path.query.get(&"name".to_string()).unwrap_or(&default_name);
+
+    let body = match request.path.path.as_str() {
+        "/" => format!("Hello, {}", &name),
+        _ => "Good morning".to_string(),
+    }.to_string();
+
+    HttpResponse::new(response::HttpVersion::Http1_1, Status::Ok, HashMap::new(), body)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn handle_stream<P: Path, B: HttpBody, H: Fn(HttpRequest<P>) -> HttpResponse<B>>(mut stream: TcpStream, request_handler: H) {
+    let reader = BufReader::new(&mut stream);
+    let mut lines = reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty());
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    let status_line = lines.next().unwrap();
+    let header_lines: Vec<_> = lines.collect();
+    let request = HttpRequest::parse_request(status_line, header_lines);
+    println!("{:#?}", &request);
+
+    let mut response = request_handler(request);
+
+    response.write(&mut stream);
+}
+
+pub fn run_server<A: ToSocketAddrs>(addr: A) -> ! {
+    let listener = TcpListener::bind(addr).unwrap();
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+        handle_stream(stream, handle_request);
     }
+    panic!("Listener closed");
 }
