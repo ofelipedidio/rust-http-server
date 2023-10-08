@@ -2,6 +2,9 @@ pub mod path;
 pub mod request;
 pub mod response;
 pub mod query;
+pub mod router;
+
+use crate::router::RequestHandler;
 
 use std::{
     net::{TcpListener, ToSocketAddrs, TcpStream}, 
@@ -10,9 +13,12 @@ use std::{
 use path::Path;
 use query::QueryPath;
 use request::HttpRequest;
-use response::{HttpResponse, Status, HttpBody};
+use response::{HttpResponse, HttpBody};
 
-fn handle_request(request: HttpRequest<QueryPath<String>>) -> HttpResponse<String> {
+fn handle_request(request: HttpRequest<QueryPath<String>>) -> HttpResponse<Box<dyn HttpBody>> {
+    //let mut router = Router::new("./server");
+
+    /*
     let default_name = "(use name query parameter)".to_string();
     let name = request.path.query.get(&"name".to_string()).unwrap_or(&default_name);
 
@@ -22,9 +28,13 @@ fn handle_request(request: HttpRequest<QueryPath<String>>) -> HttpResponse<Strin
     }.to_string();
 
     HttpResponse::new(response::HttpVersion::Http1_1, Status::Ok, HashMap::new(), body)
+    */
+
+    // router.handle_request(request)
+    HttpResponse::new(response::HttpVersion::Http1_1, response::Status::Ok, HashMap::new(), Box::new("asd".to_string()))
 }
 
-fn handle_stream<P: Path, B: HttpBody, H: Fn(HttpRequest<P>) -> HttpResponse<B>>(mut stream: TcpStream, request_handler: H) {
+fn handle_stream<P: Path, B: HttpBody>(mut stream: TcpStream, request_handler: RequestHandler<P, B>) {
     let reader = BufReader::new(&mut stream);
     let mut lines = reader
         .lines()
@@ -49,3 +59,4 @@ pub fn run_server<A: ToSocketAddrs>(addr: A) -> ! {
     }
     panic!("Listener closed");
 }
+

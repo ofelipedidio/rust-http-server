@@ -27,6 +27,26 @@ impl HttpBody for String {
 //     }
 // }
 
+impl <B: HttpBody> HttpBody for Box<B> {
+    fn write_body(&self, stream: &mut TcpStream) {
+        self.as_ref().write_body(stream);
+    }
+
+    fn write_headers(&self, headers: &mut HashMap<String, String>) {
+        self.as_ref().write_headers(headers);
+    }
+}
+
+impl HttpBody for Box<dyn HttpBody> {
+    fn write_body(&self, stream: &mut TcpStream) {
+        self.as_ref().write_body(stream);
+    }
+
+    fn write_headers(&self, headers: &mut HashMap<String, String>) {
+        self.as_ref().write_headers(headers);
+    }
+}
+
 pub enum HttpVersion {
     Http1_1,
 }
@@ -41,18 +61,24 @@ impl HttpVersion {
 
 pub enum Status {
     Ok,
+    NotFound,
+    Custom(usize, String),
 }
 
 impl Status {
     pub fn code(&self) -> usize {
         match self {
             Status::Ok => 200,
+            Status::NotFound => 404,
+            Status::Custom(code, _) => code.clone(),
         }
     }
 
     pub fn message(&self) -> String {
         match self {
-            Status::Ok => "OK",
+            Status::Ok => "Ok",
+            Status::NotFound => "Not Found",
+            Status::Custom(_, message) => message,
         }.into()
     }
 }
