@@ -1,27 +1,26 @@
-pub mod request;
-pub mod server;
-pub mod router;
-pub mod response;
+pub mod component;
 
-use crate::request::HttpRequest;
-use crate::request::Method;
-use crate::server::ServerBuilder;
-use crate::router::RouterBuilder;
-use crate::router::Router;
-use crate::response::HttpResponseBuilder;
-use crate::response::HttpResponse;
-use crate::response::Status;
+use crate::component::request::HttpRequest;
+use crate::component::request::Method;
+use crate::component::server::ServerBuilder;
+use crate::component::router_builder::RouterBuilder;
+use crate::component::router::Router;
+use crate::component::response::HttpResponseBuilder;
+use crate::component::response::HttpResponse;
+use crate::component::response::Status;
 
 fn make_api() -> Router {
     let mut router = RouterBuilder::new();
 
-    router.route("/info")
-        .static_res(HttpResponse::builder().status(Status::Ok).body("Ok"));
+    {
+        router.route("/info")
+            .static_res(HttpResponseBuilder::new().status(Status::Ok).body("Ok"));
+    }
 
     router.build()
 }
 
-fn default_handler(request: HttpRequest) -> HttpResponse {
+fn default_handler(_request: &HttpRequest) -> HttpResponse {
     HttpResponseBuilder::new()
         .status(Status::NotFound)
         .body("Could not find this file")
@@ -37,6 +36,10 @@ fn main() {
     router.route("/*").method(Method::GET).file("./server");
     router.default().handler(default_handler);
 
-    let server = ServerBuilder::new(router);
-
+    let server = ServerBuilder::new()
+        .router(router)
+        .build();
+    
+    server.serve("0.0.0.0:8080");
 }
+
