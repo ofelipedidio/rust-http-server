@@ -12,10 +12,8 @@ use crate::component::response::Status;
 fn make_api() -> Router {
     let mut router = RouterBuilder::new();
 
-    {
-        router.route("/info")
-            .static_res(HttpResponseBuilder::new().status(Status::Ok).body("Ok"));
-    }
+    router.route("/info")
+        .static_res(HttpResponseBuilder::new().status(Status::Ok).body("Ok"));
 
     router.build()
 }
@@ -32,8 +30,20 @@ fn main() {
 
     let mut router = RouterBuilder::new();
 
-    router.route("/api/*").defer(api);
-    router.route("/*").method(Method::GET).file("./server");
+    router.route("api").defer(api);
+    router.route("*").method(Method::GET).file("./server");
+    router.route("test")
+        .defer({
+            let mut router = RouterBuilder::new();
+
+            router.route("in")
+                .method(Method::GET)
+                .static_res(HttpResponseBuilder::new().status(Status::Ok).body("in"));
+            router.route("out")
+                .static_res(HttpResponseBuilder::new().status(Status::Ok).body("out"));
+
+            router
+        });
     router.default().handler(default_handler);
 
     let server = ServerBuilder::new()

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub enum Method {
     GET,
+    POST,
 }
 
 pub struct HttpRequest<'a> {

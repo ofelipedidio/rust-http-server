@@ -22,13 +22,13 @@ impl ServerBuilder {
     }
 
     pub fn build(self) -> HttpServer {
-        todo!()
+        todo!("Build http server")
     }
 }
 
 impl HttpServer {
     pub fn serve<A: ToSocketAddrs>(self, addr: A) {
-        todo!()
+        todo!("Serve http server")
     }
 }
 
